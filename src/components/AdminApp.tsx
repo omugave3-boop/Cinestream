@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, LogOut, Plus, Edit, Trash2, Save, X, BarChart3, Users, Eye, Star, ArrowLeft, Upload, Image, Video, Link } from 'lucide-react';
+import { Film, LogOut, Plus, Edit, Trash2, Save, X, BarChart3, Users, Eye, Star, ArrowLeft, Upload, Image, Video, Link, Cloud, CheckCircle } from 'lucide-react';
 import { Movie } from '../types';
 import { getMovies, saveMovies, getUsers, getRatings } from '../store';
-import { saveFile, deleteFile, getFileInfo } from '../videoStore';
 
 const ADMIN_EMAIL = 'admin@cinestream.com';
 const ADMIN_PASSWORD = 'admin123';
+
+// Cloudinary config
+const CLOUD_NAME = 'dbodkxhew';
+const UPLOAD_PRESET = 'ml_default';
+const CLOUDINARY_URL = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/auto/upload`;
 
 const emptyMovie: Omit<Movie, 'id' | 'dateAdded'> = {
   title: '',
@@ -28,6 +32,44 @@ function formatFileSize(bytes: number): string {
   return (bytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
 }
 
+async function uploadToCloudinary(
+  file: File,
+  onProgress?: (pct: number) => void
+): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', UPLOAD_PRESET);
+    formData.append('resource_type', 'auto');
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', CLOUDINARY_URL);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable && onProgress) {
+        onProgress(Math.round((e.loaded / e.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const res = JSON.parse(xhr.responseText);
+        resolve(res.secure_url);
+      } else {
+        let msg = 'Upload failed';
+        try {
+          const err = JSON.parse(xhr.responseText);
+          msg = err.error?.message || msg;
+        } catch {}
+        reject(new Error(msg));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error('Network error during upload'));
+    xhr.send(formData);
+  });
+}
+
 const AdminApp: React.FC = () => {
   const [authed, setAuthed] = useState(false);
   const [email, setEmail] = useState('');
@@ -44,10 +86,10 @@ const AdminApp: React.FC = () => {
   const [thumbPreview, setThumbPreview] = useState('');
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
+  const [uploadPercent, setUploadPercent] = useState(0);
   const thumbInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  // Temp storage for files before save
   const [pendingThumbFile, setPendingThumbFile] = useState<File | null>(null);
   const [pendingVideoFile, setPendingVideoFile] = useState<File | null>(null);
 
@@ -74,7 +116,6 @@ const AdminApp: React.FC = () => {
     if (!file) return;
     setPendingThumbFile(file);
     setThumbFileName(file.name + ' (' + formatFileSize(file.size) + ')');
-    // Preview
     const reader = new FileReader();
     reader.onload = () => setThumbPreview(reader.result as string);
     reader.readAsDataURL(file);
@@ -90,24 +131,30 @@ const AdminApp: React.FC = () => {
   const handleSave = async () => {
     if (!formData.title.trim()) return;
     setUploading(true);
+    setUploadPercent(0);
 
     const movieId = editing ? editing.id : 'movie-' + Date.now();
     let thumbUrl = formData.thumbnailUrl;
     let vidUrl = formData.videoUrl;
 
     try {
-      // Save thumbnail file
+      // Upload thumbnail to Cloudinary
       if (thumbMode === 'file' && pendingThumbFile) {
-        setUploadProgress('Saving thumbnail...');
-        const dataUrl = await saveFile('thumb-' + movieId, pendingThumbFile);
-        thumbUrl = dataUrl;
+        setUploadProgress('Uploading thumbnail to cloud...');
+        thumbUrl = await uploadToCloudinary(pendingThumbFile, (pct) => {
+          setUploadPercent(pct);
+          setUploadProgress(`Uploading thumbnail... ${pct}%`);
+        });
       }
 
-      // Save video file
+      // Upload video to Cloudinary
       if (videoMode === 'file' && pendingVideoFile) {
-        setUploadProgress('Saving video (' + formatFileSize(pendingVideoFile.size) + ')...');
-        const dataUrl = await saveFile('video-' + movieId, pendingVideoFile);
-        vidUrl = dataUrl;
+        setUploadProgress('Uploading video to cloud (0%)...');
+        setUploadPercent(0);
+        vidUrl = await uploadToCloudinary(pendingVideoFile, (pct) => {
+          setUploadPercent(pct);
+          setUploadProgress(`Uploading video... ${pct}% (${formatFileSize(pendingVideoFile!.size)})`);
+        });
       }
 
       const updated = [...movies];
@@ -130,13 +177,16 @@ const AdminApp: React.FC = () => {
         saveMovies(updated);
         setMovies(updated);
       }
-    } catch (err) {
-      console.error('Error saving movie:', err);
-      alert('Error saving movie. The file might be too large for browser storage.');
+
+      setUploadProgress('✅ Saved successfully!');
+      setTimeout(() => setUploadProgress(''), 2000);
+    } catch (err: any) {
+      console.error('Upload error:', err);
+      alert('Upload failed: ' + (err.message || 'Unknown error. Please try again.'));
     }
 
     setUploading(false);
-    setUploadProgress('');
+    setUploadPercent(0);
     setEditing(null);
     setAdding(false);
     setFormData(emptyMovie);
@@ -149,11 +199,6 @@ const AdminApp: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this movie?')) return;
-    // Clean up stored files
-    try {
-      await deleteFile('thumb-' + id);
-      await deleteFile('video-' + id);
-    } catch (e) { /* ignore */ }
     const updated = movies.filter((m) => m.id !== id);
     saveMovies(updated);
     setMovies(updated);
@@ -173,14 +218,13 @@ const AdminApp: React.FC = () => {
       categories: { ...movie.categories },
       views: movie.views,
     });
-    // Detect if existing URLs are data URLs (file uploads) or external URLs
-    const isThumbFile = movie.thumbnailUrl.startsWith('data:');
-    const isVideoFile = movie.videoUrl.startsWith('data:');
-    setThumbMode(isThumbFile ? 'file' : movie.thumbnailUrl ? 'url' : 'file');
-    setVideoMode(isVideoFile ? 'file' : movie.videoUrl ? 'url' : 'file');
-    setThumbFileName(isThumbFile ? 'Previously uploaded file' : '');
-    setVideoFileName(isVideoFile ? 'Previously uploaded file' : '');
-    setThumbPreview(isThumbFile ? movie.thumbnailUrl : '');
+    const isCloudUrl = movie.thumbnailUrl.startsWith('http');
+    const isVideoCloud = movie.videoUrl.startsWith('http');
+    setThumbMode(isCloudUrl ? 'url' : 'file');
+    setVideoMode(isVideoCloud ? 'url' : 'file');
+    setThumbFileName('');
+    setVideoFileName('');
+    setThumbPreview(isCloudUrl ? movie.thumbnailUrl : '');
     setPendingThumbFile(null);
     setPendingVideoFile(null);
   };
@@ -296,6 +340,9 @@ const AdminApp: React.FC = () => {
               <h2>{editing ? 'Edit Movie' : 'Add New Movie'}</h2>
               <button className="btn btn-sm btn-ghost" onClick={cancelForm}><X size={18} /></button>
             </div>
+            <div className="cloud-badge">
+              <Cloud size={14} /> Files upload to Cloudinary (25 GB free cloud storage)
+            </div>
             <div className="admin-form-grid">
               <div className="form-group">
                 <label>Title</label>
@@ -324,35 +371,17 @@ const AdminApp: React.FC = () => {
               <div className="form-group form-group-full">
                 <label>Thumbnail</label>
                 <div className="upload-mode-toggle">
-                  <button
-                    type="button"
-                    className={`toggle-btn ${thumbMode === 'file' ? 'active' : ''}`}
-                    onClick={() => setThumbMode('file')}
-                  >
-                    <Upload size={14} /> Upload from Device
+                  <button type="button" className={`toggle-btn ${thumbMode === 'file' ? 'active' : ''}`} onClick={() => setThumbMode('file')}>
+                    <Cloud size={14} /> Upload to Cloud
                   </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${thumbMode === 'url' ? 'active' : ''}`}
-                    onClick={() => setThumbMode('url')}
-                  >
+                  <button type="button" className={`toggle-btn ${thumbMode === 'url' ? 'active' : ''}`} onClick={() => setThumbMode('url')}>
                     <Link size={14} /> Paste URL
                   </button>
                 </div>
                 {thumbMode === 'file' ? (
                   <div className="file-upload-area">
-                    <input
-                      ref={thumbInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleThumbFileChange}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-upload"
-                      onClick={() => thumbInputRef.current?.click()}
-                    >
+                    <input ref={thumbInputRef} type="file" accept="image/*" onChange={handleThumbFileChange} style={{ display: 'none' }} />
+                    <button type="button" className="btn btn-upload" onClick={() => thumbInputRef.current?.click()}>
                       <Image size={20} />
                       <span>{thumbFileName || 'Choose Image File'}</span>
                     </button>
@@ -363,12 +392,7 @@ const AdminApp: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <input
-                    type="url"
-                    value={formData.thumbnailUrl}
-                    onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
-                    placeholder="https://example.com/poster.jpg"
-                  />
+                  <input type="url" value={formData.thumbnailUrl} onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })} placeholder="https://example.com/poster.jpg" />
                 )}
               </div>
 
@@ -376,35 +400,17 @@ const AdminApp: React.FC = () => {
               <div className="form-group form-group-full">
                 <label>Video</label>
                 <div className="upload-mode-toggle">
-                  <button
-                    type="button"
-                    className={`toggle-btn ${videoMode === 'file' ? 'active' : ''}`}
-                    onClick={() => setVideoMode('file')}
-                  >
-                    <Upload size={14} /> Upload from Device
+                  <button type="button" className={`toggle-btn ${videoMode === 'file' ? 'active' : ''}`} onClick={() => setVideoMode('file')}>
+                    <Cloud size={14} /> Upload to Cloud
                   </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${videoMode === 'url' ? 'active' : ''}`}
-                    onClick={() => setVideoMode('url')}
-                  >
+                  <button type="button" className={`toggle-btn ${videoMode === 'url' ? 'active' : ''}`} onClick={() => setVideoMode('url')}>
                     <Link size={14} /> Paste URL
                   </button>
                 </div>
                 {videoMode === 'file' ? (
                   <div className="file-upload-area">
-                    <input
-                      ref={videoInputRef}
-                      type="file"
-                      accept="video/*"
-                      onChange={handleVideoFileChange}
-                      style={{ display: 'none' }}
-                    />
-                    <button
-                      type="button"
-                      className="btn btn-upload"
-                      onClick={() => videoInputRef.current?.click()}
-                    >
+                    <input ref={videoInputRef} type="file" accept="video/*" onChange={handleVideoFileChange} style={{ display: 'none' }} />
+                    <button type="button" className="btn btn-upload" onClick={() => videoInputRef.current?.click()}>
                       <Video size={20} />
                       <span>{videoFileName || 'Choose Video File'}</span>
                     </button>
@@ -416,12 +422,7 @@ const AdminApp: React.FC = () => {
                     )}
                   </div>
                 ) : (
-                  <input
-                    type="url"
-                    value={formData.videoUrl}
-                    onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
-                    placeholder="https://example.com/movie.mp4"
-                  />
+                  <input type="url" value={formData.videoUrl} onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })} placeholder="https://example.com/movie.mp4" />
                 )}
               </div>
 
@@ -444,10 +445,21 @@ const AdminApp: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Upload progress bar */}
+            {uploading && uploadPercent > 0 && (
+              <div className="upload-progress-container">
+                <div className="upload-progress-bar">
+                  <div className="upload-progress-fill" style={{ width: `${uploadPercent}%` }} />
+                </div>
+                <span className="upload-progress-text">{uploadPercent}%</span>
+              </div>
+            )}
+
             <div className="admin-form-actions">
               <button className="btn btn-primary" onClick={handleSave} disabled={uploading}>
                 {uploading ? (
-                  <><span className="spinner" /> {uploadProgress || 'Saving...'}</>
+                  <><span className="spinner" /> {uploadProgress || 'Uploading...'}</>
                 ) : (
                   <><Save size={16} /> {editing ? 'Update Movie' : 'Add Movie'}</>
                 )}

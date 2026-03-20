@@ -15,6 +15,17 @@ function formatTime(seconds: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
+function isPlayableVideo(url: string): boolean {
+  if (!url) return false;
+  // Cloudinary URLs, direct video URLs, data URLs
+  if (url.includes('cloudinary.com')) return true;
+  if (url.startsWith('data:video')) return true;
+  if (url.startsWith('blob:')) return true;
+  if (url.match(/\.(mp4|webm|ogg|mov|mkv|avi)(\?.*)?$/i)) return true;
+  if (url.includes('/video/upload/')) return true;
+  return false;
+}
+
 const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -23,13 +34,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [hasVideo, setHasVideo] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   useEffect(() => {
-    // Check if the video URL is a real video (data URL or http URL ending in video extension)
-    const url = movie.videoUrl;
-    if (url && (url.startsWith('data:video') || url.startsWith('blob:') || url.match(/\.(mp4|webm|ogg|mov|mkv|avi)(\?.*)?$/i) || url.includes('video'))) {
-      setHasVideo(true);
-    }
+    setHasVideo(isPlayableVideo(movie.videoUrl));
+    setVideoError(false);
   }, [movie.videoUrl]);
 
   const togglePlay = () => {
@@ -37,7 +46,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
     if (playing) {
       videoRef.current.pause();
     } else {
-      videoRef.current.play();
+      videoRef.current.play().catch(() => setVideoError(true));
     }
     setPlaying(!playing);
   };
@@ -84,7 +93,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
           <X size={24} />
         </button>
         <div className="video-screen">
-          {hasVideo && movie.videoUrl ? (
+          {hasVideo && movie.videoUrl && !videoError ? (
             <video
               ref={videoRef}
               src={movie.videoUrl}
@@ -92,6 +101,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleTimeUpdate}
               onEnded={() => setPlaying(false)}
+              onError={() => setVideoError(true)}
               onClick={togglePlay}
               playsInline
               style={{ width: '100%', height: '100%', objectFit: 'contain', background: '#000' }}
@@ -108,14 +118,16 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
                 <div className="video-playing-text">
                   <p>▶ Now Playing</p>
                   <h3>{movie.title}</h3>
-                  <p className="video-note">Upload a video file in Admin to enable playback</p>
+                  <p className="video-note">
+                    {videoError ? 'Video failed to load. Try a different format.' : 'Upload a video file in Admin to enable playback'}
+                  </p>
                 </div>
               )}
             </>
           )}
         </div>
         <div className="video-controls">
-          <div className="video-progress-bar" onClick={hasVideo ? handleSeek : (e) => {
+          <div className="video-progress-bar" onClick={hasVideo && !videoError ? handleSeek : (e) => {
             const rect = e.currentTarget.getBoundingClientRect();
             setProgress(((e.clientX - rect.left) / rect.width) * 100);
           }}>
@@ -123,20 +135,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ movie, onClose }) => {
           </div>
           <div className="video-buttons">
             <div className="video-buttons-left">
-              <button onClick={() => hasVideo ? skip(-10) : setProgress(Math.max(0, progress - 10))}><SkipBack size={18} /></button>
-              <button onClick={hasVideo ? togglePlay : () => setPlaying(!playing)}>
+              <button onClick={() => hasVideo && !videoError ? skip(-10) : setProgress(Math.max(0, progress - 10))}><SkipBack size={18} /></button>
+              <button onClick={hasVideo && !videoError ? togglePlay : () => setPlaying(!playing)}>
                 {playing ? <Pause size={20} /> : <Play size={20} />}
               </button>
-              <button onClick={() => hasVideo ? skip(10) : setProgress(Math.min(100, progress + 10))}><SkipForward size={18} /></button>
-              <button onClick={hasVideo ? toggleMute : () => setMuted(!muted)}>
+              <button onClick={() => hasVideo && !videoError ? skip(10) : setProgress(Math.min(100, progress + 10))}><SkipForward size={18} /></button>
+              <button onClick={hasVideo && !videoError ? toggleMute : () => setMuted(!muted)}>
                 {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
               </button>
               <span className="video-time">
-                {hasVideo ? `${formatTime(currentTime)} / ${formatTime(duration)}` : `0:${String(Math.floor(progress * 1.2)).padStart(2, '0')} / 2:00:00`}
+                {hasVideo && !videoError ? `${formatTime(currentTime)} / ${formatTime(duration)}` : `0:${String(Math.floor(progress * 1.2)).padStart(2, '0')} / 2:00:00`}
               </span>
             </div>
             <div className="video-buttons-right">
-              <button onClick={hasVideo ? handleFullscreen : undefined}><Maximize size={18} /></button>
+              <button onClick={hasVideo && !videoError ? handleFullscreen : undefined}><Maximize size={18} /></button>
             </div>
           </div>
         </div>
