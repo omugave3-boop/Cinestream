@@ -5,10 +5,11 @@ import { getUsers, saveUsers, setCurrentUser } from '../store';
 
 interface AuthFormProps {
   onAuth: (user: User) => void;
+  defaultMode?: 'login' | 'register';
 }
 
-const AuthForm: React.FC<AuthFormProps> = ({ onAuth }) => {
-  const [isLogin, setIsLogin] = useState(true);
+const AuthForm: React.FC<AuthFormProps> = ({ onAuth, defaultMode = 'login' }) => {
+  const [isLogin, setIsLogin] = useState(defaultMode === 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');

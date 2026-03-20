@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Film, Search, LogOut, Bookmark, X } from 'lucide-react';
+import { Film, Search, LogOut, Bookmark, X, Play, Star } from 'lucide-react';
 import { User, Movie } from '../types';
 import {
   getMovies,
@@ -20,6 +20,110 @@ import GoogleAd from './GoogleAd';
 type Category = 'all' | 'trending' | 'topRated' | 'newRelease' | 'featured' | 'watchlist';
 const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Thriller', 'Romance', 'Documentary'];
 
+// Landing page shown to guests before login
+const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }> = ({ onShowAuth }) => {
+  const movies = getMovies();
+  const featured = movies[0] || null;
+
+  return (
+    <div className="landing-page">
+      {/* Navbar */}
+      <nav className="landing-nav">
+        <div className="landing-nav-brand">
+          <Film size={28} />
+          <span>CineStream</span>
+        </div>
+        <div className="landing-nav-actions">
+          <button className="btn btn-ghost" onClick={() => onShowAuth('login')}>Sign In</button>
+          <button className="btn btn-primary" onClick={() => onShowAuth('register')}>Sign Up Free</button>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <div
+        className="landing-hero"
+        style={{
+          backgroundImage: featured?.thumbnail
+            ? `linear-gradient(to bottom, rgba(10,10,20,0.5) 0%, rgba(10,10,20,0.85) 60%, rgba(10,10,20,1) 100%), url(${featured.thumbnail})`
+            : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+        }}
+      >
+        <div className="landing-hero-content">
+          {featured && (
+            <>
+              <div className="landing-hero-badge">🔥 Featured</div>
+              <h1 className="landing-hero-title">{featured.title}</h1>
+              <p className="landing-hero-desc">{featured.description?.slice(0, 120)}...</p>
+              <div className="landing-hero-meta">
+                <span><Star size={14} fill="gold" color="gold" /> {featured.rating}/10</span>
+                <span>{featured.year}</span>
+                <span>{featured.genre}</span>
+              </div>
+            </>
+          )}
+          {!featured && (
+            <>
+              <h1 className="landing-hero-title">Unlimited Movies, Anytime</h1>
+              <p className="landing-hero-desc">Stream the best movies from around the world. Sign up free and start watching today.</p>
+            </>
+          )}
+          <div className="landing-hero-buttons">
+            <button className="btn btn-primary btn-lg" onClick={() => onShowAuth('register')}>
+              <Play size={18} fill="white" /> Get Started Free
+            </button>
+            <button className="btn btn-outline btn-lg" onClick={() => onShowAuth('login')}>
+              Sign In
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Movies Preview Grid */}
+      {movies.length > 0 && (
+        <div className="landing-movies">
+          <h2 className="landing-section-title">🎬 Popular Movies</h2>
+          <div className="landing-movie-grid">
+            {movies.slice(0, 8).map((movie) => (
+              <div key={movie.id} className="landing-movie-card" onClick={() => onShowAuth('register')}>
+                <div className="landing-movie-thumb">
+                  {movie.thumbnail ? (
+                    <img src={movie.thumbnail} alt={movie.title} />
+                  ) : (
+                    <div className="landing-movie-placeholder">
+                      <Film size={32} />
+                    </div>
+                  )}
+                  <div className="landing-movie-overlay">
+                    <Play size={36} fill="white" color="white" />
+                  </div>
+                  <div className="landing-movie-rating">
+                    <Star size={12} fill="gold" color="gold" /> {movie.rating}
+                  </div>
+                </div>
+                <p className="landing-movie-title">{movie.title}</p>
+                <p className="landing-movie-year">{movie.year} · {movie.genre}</p>
+              </div>
+            ))}
+          </div>
+          <div className="landing-cta">
+            <p>Sign up free to watch all movies</p>
+            <button className="btn btn-primary btn-lg" onClick={() => onShowAuth('register')}>
+              Create Free Account
+            </button>
+          </div>
+        </div>
+      )}
+
+      <footer className="landing-footer">
+        <div className="landing-footer-brand">
+          <Film size={20} /> <span>CineStream</span>
+        </div>
+        <p>© 2025 CineStream. All rights reserved.</p>
+      </footer>
+    </div>
+  );
+};
+
 const UserApp: React.FC = () => {
   const [user, setUser] = useState<User | null>(getCurrentUser());
   const [movies, setMovies] = useState<Movie[]>(getMovies());
@@ -30,6 +134,7 @@ const UserApp: React.FC = () => {
   const [playingMovie, setPlayingMovie] = useState<Movie | null>(null);
   const [ratingMovie, setRatingMovie] = useState<Movie | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -80,8 +185,29 @@ const UserApp: React.FC = () => {
     setUser(null);
   };
 
+  // Show landing page if not logged in
   if (!user) {
-    return <AuthForm onAuth={(u) => setUser(u)} />;
+    if (authMode !== null) {
+      return (
+        <div className="auth-page" style={{ position: 'relative' }}>
+          <button
+            onClick={() => setAuthMode(null)}
+            style={{
+              position: 'absolute', top: 16, left: 16, background: 'none',
+              border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 14,
+              display: 'flex', alignItems: 'center', gap: 6, zIndex: 10,
+            }}
+          >
+            ← Back
+          </button>
+          <AuthForm
+            onAuth={(u) => { setUser(u); setAuthMode(null); }}
+            defaultMode={authMode}
+          />
+        </div>
+      );
+    }
+    return <LandingPage onShowAuth={(mode) => setAuthMode(mode)} />;
   }
 
   const categoryLabels: { key: Category; label: string }[] = [
