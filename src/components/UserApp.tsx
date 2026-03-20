@@ -43,8 +43,8 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
       <div
         className="landing-hero"
         style={{
-          backgroundImage: featured?.thumbnail
-            ? `linear-gradient(to bottom, rgba(10,10,20,0.5) 0%, rgba(10,10,20,0.85) 60%, rgba(10,10,20,1) 100%), url(${featured.thumbnail})`
+          backgroundImage: featured?.thumbnailUrl
+            ? `linear-gradient(to bottom, rgba(10,10,20,0.5) 0%, rgba(10,10,20,0.85) 60%, rgba(10,10,20,1) 100%), url(${featured.thumbnailUrl})`
             : 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
         }}
       >
@@ -86,8 +86,8 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
             {movies.slice(0, 8).map((movie) => (
               <div key={movie.id} className="landing-movie-card" onClick={() => onShowAuth('register')}>
                 <div className="landing-movie-thumb">
-                  {movie.thumbnail ? (
-                    <img src={movie.thumbnail} alt={movie.title} />
+                  {movie.thumbnailUrl ? (
+                    <img src={movie.thumbnailUrl} alt={movie.title} />
                   ) : (
                     <div className="landing-movie-placeholder">
                       <Film size={32} />
