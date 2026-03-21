@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Film, Search, Shield, Tv, Menu, X, Bookmark, LogOut, User as UserIcon, Download } from 'lucide-react';
+import { Film, Search, Shield, Tv, Menu, X, Bookmark, LogOut, Download } from 'lucide-react';
 import { AppView, User } from '../types';
 
 interface HeaderProps {
