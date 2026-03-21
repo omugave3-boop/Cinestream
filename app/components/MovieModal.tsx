@@ -43,19 +43,30 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
     try {
       // Step 1: Get signed credentials from backend
-      const signResponse = await fetch('/api/sign-upload', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ resourceType }),
-      });
-
-      if (!signResponse.ok) {
-        throw new Error('Failed to get upload credentials');
+      let signResponse;
+      try {
+        signResponse = await fetch('/api/sign-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ resourceType }),
+        });
+      } catch (fetchError) {
+        throw new Error(`Network error: Could not reach upload server. Please check your connection.`);
       }
 
-      const { url, apiKey, timestamp, signature } = await signResponse.json();
+      if (!signResponse.ok) {
+        const errorData = await signResponse.json().catch(() => ({}));
+        throw new Error(`Server error: ${errorData.error || signResponse.statusText}`);
+      }
+
+      const signData = await signResponse.json();
+      const { url, apiKey, timestamp, signature } = signData;
+
+      if (!url || !apiKey || !timestamp || !signature) {
+        throw new Error('Invalid upload credentials received from server');
+      }
 
       // Step 2: Upload directly to Cloudinary using FormData
       const formData = new FormData();
@@ -64,19 +75,19 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
       formData.append('timestamp', timestamp.toString());
       formData.append('signature', signature);
 
-      const uploadTimeout = setTimeout(() => {
-        throw new Error('Network error: Upload took too long. Please try again.');
-      }, 15 * 60 * 1000); // 15 minute timeout
-
-      const uploadResponse = await fetch(url, {
-        method: 'POST',
-        body: formData,
-      });
-
-      clearTimeout(uploadTimeout);
+      let uploadResponse;
+      try {
+        uploadResponse = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (fetchError) {
+        throw new Error(`Network error: Upload connection failed. Please check your internet connection.`);
+      }
 
       if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`);
       }
 
       const result = await uploadResponse.json();
