@@ -1,13 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html data-theme="alfred-light">
   <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎬</text></svg>" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CineStream - Movie Streaming Platform</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#4f6f52" />
+    <meta name="description" content="Stream movies, build your watchlist, and rate films. Your personal movie platform." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%234f6f52' width='192' height='192'/%3E%3Ctext x='50%' y='50%' font-size='100' font-weight='bold' fill='%23fff' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3EC%3C/text%3E%3Crect x='30' y='90' width='132' height='60' fill='none' stroke='%23ff7f50' stroke-width='4' rx='4'/%3E%3C/svg%3E" />
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%234f6f52' width='192' height='192'/%3E%3Ctext x='50%' y='50%' font-size='100' font-weight='bold' fill='%23fff' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3EC%3C/text%3E%3Crect x='30' y='90' width='132' height='60' fill='none' stroke='%23ff7f50' stroke-width='4' rx='4'/%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" type="text/css" />
+    <style>[data-theme='alfred-light'] {
+  color-scheme: light;
+  --radius-selector: 0rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+  --color-base-100: #f5f5f5;
+  --color-base-200: #eaeaea;
+  --color-base-300: #dfdfdf;
+  --color-base-content: #1c1c1e;
+  --color-primary: #4f6f52;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff7f50;
+  --color-secondary-content: #1c1c1e;
+  --color-accent: #ff7f50;
+  --color-accent-content: #1c1c1e;
+  --color-neutral: #1f1f23;
+  --color-neutral-content: #e8e8ec;
+  --color-info: #4a7c9b;
+  --color-info-content: #f4f4f5;
+  --color-success: #3d8b6e;
+  --color-success-content: #f4f4f5;
+  --color-warning: #b8860b;
+  --color-warning-content: #1c1c1e;
+  --color-error: #9e3d32;
+  --color-error-content: #f4f4f5;
+}
+[data-theme='alfred-dark'] {
+  color-scheme: dark;
+  --radius-selector: 0rem;
+  --radius-field: 0.25rem;
+  --radius-box: 0.25rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 1;
+  --noise: 0;
+  --color-base-100: #121215;
+  --color-base-200: #1a1a1e;
+  --color-base-300: #252529;
+  --color-base-content: #f4f4f5;
+  --color-primary: #4f6f52;
+  --color-primary-content: #ffffff;
+  --color-secondary: #ff7f50;
+  --color-secondary-content: #1c1c1e;
+  --color-accent: #ff7f50;
+  --color-accent-content: #1c1c1e;
+  --color-neutral: #3a3a42;
+  --color-neutral-content: #b8b8c0;
+  --color-info: #4a7c9b;
+  --color-info-content: #f4f4f5;
+  --color-success: #3d8b6e;
+  --color-success-content: #f4f4f5;
+  --color-warning: #b8860b;
+  --color-warning-content: #1c1c1e;
+  --color-error: #9e3d32;
+  --color-error-content: #f4f4f5;
+}
+</style>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <script>
+      (function() {
+        var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'alfred-dark' : 'alfred-light';
+        document.documentElement.setAttribute('data-theme', theme);
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+          document.documentElement.setAttribute('data-theme', e.matches ? 'alfred-dark' : 'alfred-light');
+        });
+      })();
+    </script>
   </head>
-  <body>
+  <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script src="bundle.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js').then((registration) => {
+          console.log('Service Worker registered:', registration);
+        }).catch((error) => {
+          console.log('Service Worker registration failed:', error);
+        });
+      }
+
+      // PWA install prompt
+      let deferredPrompt;
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+      });
+
+      window.addEventListener('appinstalled', () => {
+        console.log('PWA installed');
+      });
+    </script>
   </body>
 </html>
