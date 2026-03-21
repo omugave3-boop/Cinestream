@@ -135,7 +135,7 @@ export const Header: React.FC<HeaderProps> = ({
             {/* User avatar dropdown */}
             <div className="relative">
               <button
-                className={`btn btn-sm btn-circle ${currentUser?.avatar_color || 'bg-primary'} text-primary-content border-0`}
+                className="btn btn-sm btn-circle bg-primary text-primary-content border-0"
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 {initial}
@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
             <div className="flex items-center gap-2 pt-2 border-t border-base-content/10">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${currentUser?.avatar_color || 'bg-primary'} text-primary-content`}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold bg-primary text-primary-content">
                 {initial}
               </div>
               <div>
