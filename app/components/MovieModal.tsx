@@ -42,59 +42,48 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
 
   const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
     try {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        const uploadTimeout = setTimeout(() => {
-          reject(new Error('Network error: Upload took too long. Please try again.'));
-        }, 15 * 60 * 1000); // 15 minute timeout for large files
-        
-        reader.onload = async () => {
-          try {
-            const base64Data = reader.result as string;
-            
-            // Call backend API with base64 file
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                file: base64Data,
-                resourceType: resourceType,
-              }),
-            });
-
-            clearTimeout(uploadTimeout);
-
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(errorData.error || `Upload failed: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            setUploadProgress(0);
-            resolve(data.secure_url);
-          } catch (error) {
-            clearTimeout(uploadTimeout);
-            reject(error);
-          }
-        };
-
-        reader.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const progress = (event.loaded / event.total) * 100;
-            setUploadProgress(Math.round(progress));
-          }
-        };
-
-        reader.onerror = () => {
-          clearTimeout(uploadTimeout);
-          reject(new Error('Failed to read file'));
-        };
-        
-        reader.readAsDataURL(file);
+      // Step 1: Get signed credentials from backend
+      const signResponse = await fetch('/api/sign-upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ resourceType }),
       });
+
+      if (!signResponse.ok) {
+        throw new Error('Failed to get upload credentials');
+      }
+
+      const { url, apiKey, timestamp, signature } = await signResponse.json();
+
+      // Step 2: Upload directly to Cloudinary using FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+
+      const uploadTimeout = setTimeout(() => {
+        throw new Error('Network error: Upload took too long. Please try again.');
+      }, 15 * 60 * 1000); // 15 minute timeout
+
+      const uploadResponse = await fetch(url, {
+        method: 'POST',
+        body: formData,
+      });
+
+      clearTimeout(uploadTimeout);
+
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+      }
+
+      const result = await uploadResponse.json();
+      setUploadProgress(0);
+      return result.secure_url;
     } catch (error) {
+      setUploadProgress(0);
       throw error;
     }
   };
