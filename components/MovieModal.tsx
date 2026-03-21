@@ -10,7 +10,6 @@ interface MovieModalProps {
 }
 
 const CLOUDINARY_CLOUD_NAME = 'dbodkxhew';
-const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
 export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }) => {
   const [title, setTitle] = useState('');
@@ -42,52 +41,59 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
 
   const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
     try {
-      // Read file as base64
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        const uploadTimeout = setTimeout(() => {
-          reject(new Error('Network error: Upload took too long. Please try again.'));
-        }, 10 * 60 * 1000); // 10 minute timeout for large files
-        
-        reader.onload = async () => {
-          try {
-            const base64Data = reader.result as string;
-            
-            // Call backend API instead of direct Cloudinary upload
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                file: base64Data,
-                resourceType: resourceType,
-              }),
-            });
+      // Step 1: Get signed credentials from backend
+      let signResponse;
+      try {
+        signResponse = await fetch('/api/sign-upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ resourceType }),
+        });
+      } catch (fetchError) {
+        throw new Error(`Network error: Could not reach upload server. Please check your connection.`);
+      }
 
-            clearTimeout(uploadTimeout);
+      if (!signResponse.ok) {
+        const errorData = await signResponse.json().catch(() => ({}));
+        throw new Error(`Server error: ${errorData.error || signResponse.statusText}`);
+      }
 
-            if (!response.ok) {
-              throw new Error(`Upload failed: ${response.statusText}`);
-            }
+      const signData = await signResponse.json();
+      const { url, apiKey, timestamp, signature } = signData;
 
-            const data = await response.json();
-            setUploadProgress(0);
-            resolve(data.secure_url);
-          } catch (error) {
-            clearTimeout(uploadTimeout);
-            reject(error);
-          }
-        };
+      if (!url || !apiKey || !timestamp || !signature) {
+        throw new Error('Invalid upload credentials received from server');
+      }
 
-        reader.onerror = () => {
-          clearTimeout(uploadTimeout);
-          reject(new Error('Failed to read file'));
-        };
-        
-        reader.readAsDataURL(file);
-      });
+      // Step 2: Upload directly to Cloudinary using FormData
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('api_key', apiKey);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+
+      let uploadResponse;
+      try {
+        uploadResponse = await fetch(url, {
+          method: 'POST',
+          body: formData,
+        });
+      } catch (fetchError) {
+        throw new Error(`Network error: Upload connection failed. Please check your internet connection.`);
+      }
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json().catch(() => ({}));
+        throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`);
+      }
+
+      const result = await uploadResponse.json();
+      setUploadProgress(0);
+      return result.secure_url;
     } catch (error) {
+      setUploadProgress(0);
       throw error;
     }
   };
@@ -96,26 +102,23 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size (max 1GB)
-    const MAX_SIZE = 1 * 1024 * 1024 * 1024; // 1GB
+    // Check file size (max 5GB)
+    const MAX_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
     if (file.size > MAX_SIZE) {
-      alert(`File too large! Maximum size is 1GB. Your file is ${(file.size / 1024 / 1024 / 1024).toFixed(2)}GB`);
+      alert(`File too large! Maximum size is 5GB. Your file is ${(file.size / 1024 / 1024 / 1024).toFixed(2)}GB`);
       return;
     }
 
     setUploadingVideo(true);
     try {
-      alert(`Uploading ${file.name}... This may take 2-5 minutes for large files. Please wait!`);
+      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
+      alert(`Uploading ${file.name} (${sizeMB}MB)...\n\nThis may take several minutes depending on file size and connection speed.`);
       const url = await uploadToCloudinary(file, 'video');
       setVideoUrl(url);
       alert('✅ Video uploaded successfully!');
     } catch (error: any) {
       const errorMsg = error?.message || String(error);
-      if (errorMsg.includes('Network') || errorMsg.includes('timeout')) {
-        alert(`Upload timeout. Your file (${(file.size / 1024 / 1024).toFixed(1)}MB) was too large or connection was too slow. Try using "Paste URL" instead or upload a smaller file.`);
-      } else {
-        alert(`Video upload failed: ${errorMsg}`);
-      }
+      alert(`Video upload failed:\n${errorMsg}`);
     } finally {
       setUploadingVideo(false);
       setUploadProgress(0);
