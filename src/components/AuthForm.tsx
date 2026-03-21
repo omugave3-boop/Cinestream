@@ -42,6 +42,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuth, defaultMode = 'login' }) =>
         email,
         password,
         name: name.trim(),
+        username: name.trim().toLowerCase().replace(/\s+/g, '_'),
+        role: 'user',
         createdAt: new Date().toISOString(),
       };
       users.push(newUser);

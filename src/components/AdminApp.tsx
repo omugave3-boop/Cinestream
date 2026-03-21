@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Film, LogOut, Plus, Edit, Trash2, Save, X, BarChart3, Users, Eye, Star, ArrowLeft, Upload, Image, Video, Link, Cloud, CheckCircle } from 'lucide-react';
+import { Film, LogOut, Plus, Edit, Trash2, Save, X, Users, Eye, Star, ArrowLeft, Image, Video, Link, Cloud } from 'lucide-react';
 import { Movie } from '../types';
 import { getMovies, saveMovies, getUsers, getRatings } from '../store';
 
