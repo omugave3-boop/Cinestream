@@ -42,33 +42,40 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
 
   const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-      formData.append('resource_type', resourceType);
-
-      const xhr = new XMLHttpRequest();
-      
-      xhr.upload.addEventListener('progress', (e) => {
-        if (e.lengthComputable) {
-          const percentComplete = (e.loaded / e.total) * 100;
-          setUploadProgress(Math.round(percentComplete));
-        }
-      });
-
+      // Read file as base64
       return new Promise((resolve, reject) => {
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const response = JSON.parse(xhr.responseText);
-            resolve(response.secure_url);
-          } else {
-            reject(new Error(`Upload failed: ${xhr.statusText}`));
+        const reader = new FileReader();
+        
+        reader.onload = async () => {
+          try {
+            const base64Data = reader.result as string;
+            
+            // Call backend API instead of direct Cloudinary upload
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                file: base64Data,
+                resourceType: resourceType,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Upload failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            setUploadProgress(0);
+            resolve(data.secure_url);
+          } catch (error) {
+            reject(error);
           }
         };
-        xhr.onerror = () => reject(new Error('Upload failed'));
-        
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`);
-        xhr.send(formData);
+
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
       });
     } catch (error) {
       throw error;
