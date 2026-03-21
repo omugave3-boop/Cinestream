@@ -7,6 +7,7 @@ export interface Movie {
   rating: number;
   thumbnailUrl: string;
   videoUrl: string;
+  duration: string;
   categories: {
     trending: boolean;
     topRated: boolean;

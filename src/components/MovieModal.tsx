@@ -5,7 +5,7 @@ import { GENRES, escapeSQL } from '../utils/helpers';
 
 interface MovieModalProps {
   movie: Movie | null; // null = add new
-  onSave: (movie: Omit<Movie, 'id' | 'created_at'>) => void;
+  onSave: (movie: Omit<Movie, 'id' | 'dateAdded'>) => void;
   onClose: () => void;
 }
 
@@ -32,11 +32,11 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
       setDescription(movie.description);
       setGenre(movie.genre);
       setYear(movie.year);
-      setThumbnailUrl(movie.thumbnail_url);
-      setVideoUrl(movie.video_url);
+      setThumbnailUrl(movie.thumbnailUrl);
+      setVideoUrl(movie.videoUrl);
       setRating(movie.rating);
       setDuration(movie.duration);
-      setFeatured(movie.featured === 1);
+      setFeatured(movie.categories.featured);
     }
   }, [movie]);
 
@@ -121,12 +121,17 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
       description,
       genre,
       year,
-      thumbnail_url: thumbnailUrl,
-      video_url: videoUrl,
+      thumbnailUrl,
+      videoUrl,
       rating,
       duration,
       views: movie?.views || 0,
-      featured: featured ? 1 : 0,
+      categories: {
+        trending: movie?.categories.trending || false,
+        topRated: movie?.categories.topRated || false,
+        newRelease: movie?.categories.newRelease || false,
+        featured,
+      },
     });
   };
 
