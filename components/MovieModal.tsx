@@ -11,6 +11,13 @@ interface MovieModalProps {
 
 const CLOUDINARY_CLOUD_NAME = 'dbodkxhew';
 
+// Load Cloudinary widget script
+declare global {
+  interface Window {
+    cloudinary: any;
+  }
+}
+
 export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -23,7 +30,6 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   const [featured, setFeatured] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     if (movie) {
@@ -39,106 +45,80 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
     }
   }, [movie]);
 
-  const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
-    try {
-      // Step 1: Get signed credentials from backend
-      let signResponse;
-      try {
-        signResponse = await fetch('/api/sign-upload', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ resourceType }),
-        });
-      } catch (fetchError) {
-        throw new Error(`Network error: Could not reach upload server. Please check your connection.`);
+  // Load Cloudinary widget on mount
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://upload-widget.cloudinary.com/latest/index.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
       }
+    };
+  }, []);
 
-      if (!signResponse.ok) {
-        const errorData = await signResponse.json().catch(() => ({}));
-        throw new Error(`Server error: ${errorData.error || signResponse.statusText}`);
-      }
-
-      const signData = await signResponse.json();
-      const { url, apiKey, timestamp, signature } = signData;
-
-      if (!url || !apiKey || !timestamp || !signature) {
-        throw new Error('Invalid upload credentials received from server');
-      }
-
-      // Step 2: Upload directly to Cloudinary using FormData
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('api_key', apiKey);
-      formData.append('timestamp', timestamp.toString());
-      formData.append('signature', signature);
-
-      let uploadResponse;
-      try {
-        uploadResponse = await fetch(url, {
-          method: 'POST',
-          body: formData,
-        });
-      } catch (fetchError) {
-        throw new Error(`Network error: Upload connection failed. Please check your internet connection.`);
-      }
-
-      if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json().catch(() => ({}));
-        throw new Error(`Upload failed: ${errorData.error || uploadResponse.statusText}`);
-      }
-
-      const result = await uploadResponse.json();
-      setUploadProgress(0);
-      return result.secure_url;
-    } catch (error) {
-      setUploadProgress(0);
-      throw error;
-    }
-  };
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Check file size (max 5GB)
-    const MAX_SIZE = 5 * 1024 * 1024 * 1024; // 5GB
-    if (file.size > MAX_SIZE) {
-      alert(`File too large! Maximum size is 5GB. Your file is ${(file.size / 1024 / 1024 / 1024).toFixed(2)}GB`);
+  const openVideoUploadWidget = () => {
+    if (!window.cloudinary) {
+      alert('Upload widget not loaded. Please refresh and try again.');
       return;
     }
 
     setUploadingVideo(true);
-    try {
-      const sizeMB = (file.size / 1024 / 1024).toFixed(1);
-      alert(`Uploading ${file.name} (${sizeMB}MB)...\n\nThis may take several minutes depending on file size and connection speed.`);
-      const url = await uploadToCloudinary(file, 'video');
-      setVideoUrl(url);
-      alert('✅ Video uploaded successfully!');
-    } catch (error: any) {
-      const errorMsg = error?.message || String(error);
-      alert(`Video upload failed:\n${errorMsg}`);
-    } finally {
-      setUploadingVideo(false);
-      setUploadProgress(0);
-    }
+    window.cloudinary.openUploadWidget(
+      {
+        cloudName: CLOUDINARY_CLOUD_NAME,
+        uploadPreset: 'cinestream_video',
+        resourceType: 'video',
+        multiple: false,
+        folder: 'cinestream/videos',
+        maxFileSize: 5368709120, // 5GB
+        maxFiles: 1,
+      },
+      (error: any, result: any) => {
+        setUploadingVideo(false);
+        if (error) {
+          console.error('Upload error:', error);
+          alert(`Upload failed: ${error.statusText || error.message}`);
+          return;
+        }
+        if (result?.event === 'success') {
+          setVideoUrl(result.info.secure_url);
+          alert('✅ Video uploaded successfully!');
+        }
+      }
+    );
   };
 
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const openThumbnailUploadWidget = () => {
+    if (!window.cloudinary) {
+      alert('Upload widget not loaded. Please refresh and try again.');
+      return;
+    }
 
     setUploadingThumbnail(true);
-    try {
-      const url = await uploadToCloudinary(file, 'image');
-      setThumbnailUrl(url);
-    } catch (error) {
-      alert(`Thumbnail upload failed: ${error}`);
-    } finally {
-      setUploadingThumbnail(false);
-      setUploadProgress(0);
-    }
+    window.cloudinary.openUploadWidget(
+      {
+        cloudName: CLOUDINARY_CLOUD_NAME,
+        uploadPreset: 'cinestream_images',
+        resourceType: 'image',
+        multiple: false,
+        folder: 'cinestream/thumbnails',
+        maxFileSize: 10485760, // 10MB for images
+        maxFiles: 1,
+      },
+      (error: any, result: any) => {
+        setUploadingThumbnail(false);
+        if (error) {
+          console.error('Upload error:', error);
+          alert(`Upload failed: ${error.statusText || error.message}`);
+          return;
+        }
+        if (result?.event === 'success') {
+          setThumbnailUrl(result.info.secure_url);
+        }
+      }
+    );
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -248,19 +228,17 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
                   placeholder="Paste URL or upload below"
                 />
               </div>
-              <label className="btn btn-primary btn-outline gap-2">
+              <button
+                type="button"
+                className="btn btn-primary btn-outline gap-2"
+                onClick={openThumbnailUploadWidget}
+                disabled={uploadingThumbnail}
+              >
                 <Upload size={16} />
                 {uploadingThumbnail ? 'Uploading...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailUpload}
-                  disabled={uploadingThumbnail}
-                  className="hidden"
-                />
-              </label>
+              </button>
             </div>
-            {uploadingThumbnail && <div className="text-xs text-info mt-1">Uploading: {uploadProgress}%</div>}
+            {thumbnailUrl && <div className="text-xs text-success mt-1">✅ Thumbnail URL set <Cloud size={12} className="inline" /></div>}
           </div>
 
           <div>
@@ -274,19 +252,16 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
                   placeholder="Paste URL or upload below"
                 />
               </div>
-              <label className="btn btn-primary btn-outline gap-2">
+              <button
+                type="button"
+                className="btn btn-primary btn-outline gap-2"
+                onClick={openVideoUploadWidget}
+                disabled={uploadingVideo}
+              >
                 <Upload size={16} />
                 {uploadingVideo ? 'Uploading...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  disabled={uploadingVideo}
-                  className="hidden"
-                />
-              </label>
+              </button>
             </div>
-            {uploadingVideo && <div className="text-xs text-info mt-1">Uploading: {uploadProgress}%</div>}
             {videoUrl && <div className="text-xs text-success mt-1">✅ Video URL set <Cloud size={12} className="inline" /></div>}
           </div>
 
