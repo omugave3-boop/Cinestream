@@ -3,7 +3,7 @@ import { v2 as cloudinary } from 'cloudinary';
 export const config = {
   api: {
     bodyParser: {
-      sizeLimit: '100mb',
+      sizeLimit: '500mb',
     },
   },
 };
@@ -11,7 +11,7 @@ export const config = {
 const handler = async (req: any, res: any) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -25,7 +25,7 @@ const handler = async (req: any, res: any) => {
   try {
     // Configure Cloudinary
     cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'dbodkxhew',
+      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
       api_key: process.env.CLOUDINARY_API_KEY,
       api_secret: process.env.CLOUDINARY_API_SECRET,
     });
@@ -36,7 +36,7 @@ const handler = async (req: any, res: any) => {
       return res.status(400).json({ error: 'No file provided' });
     }
 
-    // Extract base64 data
+    // For large files, use direct stream to Cloudinary
     const matches = file.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (!matches || matches.length !== 3) {
       return res.status(400).json({ error: 'Invalid file format' });
@@ -45,25 +45,26 @@ const handler = async (req: any, res: any) => {
     const data = matches[2];
     const buffer = Buffer.from(data, 'base64');
 
-    // Upload to Cloudinary
+    // Upload to Cloudinary with higher timeout
     const result = await new Promise((resolve, reject) => {
       const uploadStream = cloudinary.uploader.upload_stream(
         {
           resource_type: resourceType === 'video' ? 'video' : 'image',
           folder: 'cinestream',
-          eager: resourceType === 'video' ? [
-            { quality: 'auto', fetch_format: 'auto' }
-          ] : undefined,
+          timeout: 300000, // 5 minutes
         },
         (error, result) => {
           if (error) {
-            console.error('Cloudinary error:', error);
             reject(error);
           } else {
             resolve(result);
           }
         }
       );
+
+      uploadStream.on('error', (error) => {
+        reject(new Error(`Stream error: ${error.message}`));
+      });
 
       uploadStream.end(buffer);
     });
