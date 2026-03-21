@@ -17,6 +17,7 @@ const emptyMovie: Omit<Movie, 'id' | 'dateAdded'> = {
   genre: 'Action',
   year: new Date().getFullYear(),
   rating: 7.0,
+  duration: '',
   thumbnailUrl: '',
   videoUrl: '',
   categories: { trending: false, topRated: false, newRelease: false, featured: false },
@@ -213,6 +214,7 @@ const AdminApp: React.FC = () => {
       genre: movie.genre,
       year: movie.year,
       rating: movie.rating,
+      duration: movie.duration,
       thumbnailUrl: movie.thumbnailUrl,
       videoUrl: movie.videoUrl,
       categories: { ...movie.categories },
@@ -361,6 +363,10 @@ const AdminApp: React.FC = () => {
               <div className="form-group">
                 <label>Rating (0-10)</label>
                 <input type="number" step="0.1" min="0" max="10" value={formData.rating} onChange={(e) => setFormData({ ...formData, rating: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div className="form-group">
+                <label>Duration</label>
+                <input type="text" value={formData.duration} onChange={(e) => setFormData({ ...formData, duration: e.target.value })} placeholder="2h 15m" />
               </div>
               <div className="form-group form-group-full">
                 <label>Description</label>

@@ -1,3 +1,5 @@
+export type AppView = 'user' | 'admin';
+
 export interface Movie {
   id: string;
   title: string;

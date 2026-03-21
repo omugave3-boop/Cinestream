@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, Cloud } from 'lucide-react';
 import { Movie } from '../types';
-import { GENRES, escapeSQL } from '../utils/helpers';
+import { GENRES } from '../utils/helpers';
 
 interface MovieModalProps {
   movie: Movie | null; // null = add new
   onSave: (movie: Omit<Movie, 'id' | 'dateAdded'>) => void;
   onClose: () => void;
 }
-
-const CLOUDINARY_CLOUD_NAME = 'dbodkxhew';
-const CLOUDINARY_UPLOAD_PRESET = 'ml_default';
 
 export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }) => {
   const [title, setTitle] = useState('');
