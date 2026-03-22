@@ -72,7 +72,6 @@
   --color-error-content: #f4f4f5;
 }
 </style>
-    <link rel="stylesheet" href="styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 
     <script>
@@ -87,7 +86,7 @@
   </head>
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
-    <script src="bundle.js"></script>
+    <script type="module" src="/src/main.tsx"></script>
     <script>
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('service-worker.js').then((registration) => {
