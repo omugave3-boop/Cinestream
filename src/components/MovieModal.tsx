@@ -9,6 +9,10 @@ interface MovieModalProps {
   onClose: () => void;
 }
 
+interface CloudinaryUploadResponse {
+  secure_url: string;
+}
+
 export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -37,7 +41,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
     }
   }, [movie]);
 
-  const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image') => {
+  const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image'): Promise<string> => {
     try {
       // Read file as base64
       return new Promise((resolve, reject) => {
@@ -63,7 +67,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
               throw new Error(`Upload failed: ${response.statusText}`);
             }
 
-            const data = await response.json();
+            const data = (await response.json()) as CloudinaryUploadResponse;
             setUploadProgress(0);
             resolve(data.secure_url);
           } catch (error) {
