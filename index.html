@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#4f6f52" />
     <meta name="description" content="Stream movies, build your watchlist, and rate films. Your personal movie platform." />
-    <link rel="manifest" href="manifest.json" />
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%234f6f52' width='192' height='192'/%3E%3Ctext x='50%' y='50%' font-size='100' font-weight='bold' fill='%23fff' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3EC%3C/text%3E%3Crect x='30' y='90' width='132' height='60' fill='none' stroke='%23ff7f50' stroke-width='4' rx='4'/%3E%3C/svg%3E" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect fill='%234f6f52' width='192' height='192'/%3E%3Ctext x='50%' y='50%' font-size='100' font-weight='bold' fill='%23fff' text-anchor='middle' dominant-baseline='middle' font-family='Arial'%3EC%3C/text%3E%3Crect x='30' y='90' width='132' height='60' fill='none' stroke='%23ff7f50' stroke-width='4' rx='4'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5" type="text/css" />
     <style>[data-theme='alfred-light'] {
   color-scheme: light;
@@ -73,7 +71,6 @@
 }
 </style>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-
     <script>
       (function() {
         var theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'alfred-dark' : 'alfred-light';
@@ -87,25 +84,5 @@
   <body class="bg-base-100 text-base-content">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('service-worker.js').then((registration) => {
-          console.log('Service Worker registered:', registration);
-        }).catch((error) => {
-          console.log('Service Worker registration failed:', error);
-        });
-      }
-
-      // PWA install prompt
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-      });
-
-      window.addEventListener('appinstalled', () => {
-        console.log('PWA installed');
-      });
-    </script>
   </body>
 </html>
