@@ -21,7 +21,7 @@ type Category = 'all' | 'trending' | 'topRated' | 'newRelease' | 'featured' | 'w
 const GENRES = ['All', 'Action', 'Comedy', 'Drama', 'Horror', 'Sci-Fi', 'Thriller', 'Romance', 'Documentary'];
 
 // Landing page shown to guests before login
-const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }> = ({ onShowAuth }) => {
+const LandingPage: React.FC<{ onShowAuth: () => void }> = ({ onShowAuth }) => {
   const movies = getMovies();
   const featured = movies[0] || null;
 
@@ -34,8 +34,7 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
           <span>CineStream</span>
         </div>
         <div className="landing-nav-actions">
-          <button className="btn btn-ghost" onClick={() => onShowAuth('login')}>Sign In</button>
-          <button className="btn btn-primary" onClick={() => onShowAuth('register')}>Sign Up Free</button>
+          <button className="btn btn-primary" onClick={onShowAuth}>Sign In</button>
         </div>
       </nav>
 
@@ -64,15 +63,12 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
           {!featured && (
             <>
               <h1 className="landing-hero-title">Unlimited Movies, Anytime</h1>
-              <p className="landing-hero-desc">Stream the best movies from around the world. Sign up free and start watching today.</p>
+              <p className="landing-hero-desc">Stream the best movies from around the world. Sign in to watch today.</p>
             </>
           )}
           <div className="landing-hero-buttons">
-            <button className="btn btn-primary btn-lg" onClick={() => onShowAuth('register')}>
-              <Play size={18} fill="white" /> Get Started Free
-            </button>
-            <button className="btn btn-outline btn-lg" onClick={() => onShowAuth('login')}>
-              Sign In
+            <button className="btn btn-primary btn-lg" onClick={onShowAuth}>
+              <Play size={18} fill="white" /> Sign In
             </button>
           </div>
         </div>
@@ -84,7 +80,7 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
           <h2 className="landing-section-title">🎬 Popular Movies</h2>
           <div className="landing-movie-grid">
             {movies.slice(0, 8).map((movie) => (
-              <div key={movie.id} className="landing-movie-card" onClick={() => onShowAuth('register')}>
+              <div key={movie.id} className="landing-movie-card" onClick={onShowAuth}>
                 <div className="landing-movie-thumb">
                   {movie.thumbnailUrl ? (
                     <img src={movie.thumbnailUrl} alt={movie.title} />
@@ -106,9 +102,9 @@ const LandingPage: React.FC<{ onShowAuth: (mode: 'login' | 'register') => void }
             ))}
           </div>
           <div className="landing-cta">
-            <p>Sign up free to watch all movies</p>
-            <button className="btn btn-primary btn-lg" onClick={() => onShowAuth('register')}>
-              Create Free Account
+            <p>Sign in to watch all movies</p>
+            <button className="btn btn-primary btn-lg" onClick={onShowAuth}>
+              Sign In
             </button>
           </div>
         </div>
@@ -134,7 +130,7 @@ const UserApp: React.FC = () => {
   const [playingMovie, setPlayingMovie] = useState<Movie | null>(null);
   const [ratingMovie, setRatingMovie] = useState<Movie | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | null>(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -187,11 +183,11 @@ const UserApp: React.FC = () => {
 
   // Show landing page if not logged in
   if (!user) {
-    if (authMode !== null) {
+    if (showAuth) {
       return (
         <div className="auth-page" style={{ position: 'relative' }}>
           <button
-            onClick={() => setAuthMode(null)}
+            onClick={() => setShowAuth(false)}
             style={{
               position: 'absolute', top: 16, left: 16, background: 'none',
               border: 'none', color: '#aaa', cursor: 'pointer', fontSize: 14,
@@ -201,13 +197,12 @@ const UserApp: React.FC = () => {
             ← Back
           </button>
           <AuthForm
-            onAuth={(u) => { setUser(u); setAuthMode(null); }}
-            defaultMode={authMode}
+            onAuth={(u) => { setUser(u); setShowAuth(false); }}
           />
         </div>
       );
     }
-    return <LandingPage onShowAuth={(mode) => setAuthMode(mode)} />;
+    return <LandingPage onShowAuth={() => setShowAuth(true)} />;
   }
 
   const categoryLabels: { key: Category; label: string }[] = [
