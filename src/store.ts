@@ -9,12 +9,21 @@ const KEYS = {
   ratings: 'cinestream_ratings',
 };
 
+const DEFAULT_ADMIN: User = {
+  id: 'admin-001',
+  email: 'admin@cinestream.com',
+  password: 'admin123',
+  name: 'Admin User',
+  role: 'admin',
+  createdAt: new Date().toISOString(),
+};
+
 function init() {
   if (!localStorage.getItem(KEYS.movies)) {
     localStorage.setItem(KEYS.movies, JSON.stringify(sampleMovies));
   }
   if (!localStorage.getItem(KEYS.users)) {
-    localStorage.setItem(KEYS.users, JSON.stringify([]));
+    localStorage.setItem(KEYS.users, JSON.stringify([DEFAULT_ADMIN]));
   }
   if (!localStorage.getItem(KEYS.watchlist)) {
     localStorage.setItem(KEYS.watchlist, JSON.stringify({}));
