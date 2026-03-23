@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Upload, Cloud } from 'lucide-react';
+import { X, Save, Upload, Cloud, Check } from 'lucide-react';
 import { Movie } from '../types';
 import { GENRES } from '../utils/helpers';
+
+declare global {
+  interface Window {
+    cloudinary: any;
+  }
+}
 
 interface MovieModalProps {
   movie: Movie | null; // null = add new
   onSave: (movie: Omit<Movie, 'id' | 'dateAdded'>) => void;
   onClose: () => void;
-}
-
-interface CloudinaryUploadResponse {
-  secure_url: string;
 }
 
 export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }) => {
@@ -25,7 +27,14 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   const [featured, setFeatured] = useState(false);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
+
+  // Initialize Cloudinary Upload Widget
+  const initializeCloudinary = () => {
+    const script = document.createElement('script');
+    script.src = 'https://upload-widget.cloudinary.com/latest/index.js';
+    script.async = true;
+    document.head.appendChild(script);
+  };
 
   useEffect(() => {
     if (movie) {
@@ -39,84 +48,71 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
       setDuration(movie.duration);
       setFeatured(movie.categories.featured);
     }
+    initializeCloudinary();
   }, [movie]);
 
-  const uploadToCloudinary = async (file: File, resourceType: 'video' | 'image'): Promise<string> => {
-    try {
-      // Read file as base64
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        
-        reader.onload = async () => {
-          try {
-            const base64Data = reader.result as string;
-            
-            // Call backend API instead of direct Cloudinary upload
-            const response = await fetch('/api/upload', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                file: base64Data,
-                resourceType: resourceType,
-              }),
-            });
+  const openCloudinaryWidget = (type: 'image' | 'video') => {
+    if (!window.cloudinary) {
+      alert('Cloudinary is loading... please try again in a moment');
+      return;
+    }
 
-            if (!response.ok) {
-              throw new Error(`Upload failed: ${response.statusText}`);
-            }
+    if (type === 'video') setUploadingVideo(true);
+    else setUploadingThumbnail(true);
 
-            const data = (await response.json()) as CloudinaryUploadResponse;
-            setUploadProgress(0);
-            resolve(data.secure_url);
-          } catch (error) {
-            reject(error);
+    const widget = window.cloudinary.createUploadWidget(
+      {
+        cloudName: 'dbodkxhew',
+        uploadPreset: type === 'video' ? 'cinestream_video' : 'cinestream_images',
+        maxFileSize: 5 * 1024 * 1024 * 1024, // 5GB
+        multiple: false,
+        folder: type === 'video' ? 'cinestream/videos' : 'cinestream/thumbnails',
+        resourceType: type === 'video' ? 'video' : 'image',
+        showAdvancedOptions: false,
+        cropping: false,
+        showCompletedButton: true,
+      },
+      (error: any, result: any) => {
+        if (error) {
+          console.error('Upload error:', error);
+          alert(`Upload failed: ${error?.message || 'Unknown error'}`);
+          if (type === 'video') setUploadingVideo(false);
+          else setUploadingThumbnail(false);
+          return;
+        }
+
+        if (result.event === 'success') {
+          const url = result.info.secure_url;
+          if (type === 'video') {
+            setVideoUrl(url);
+            setUploadingVideo(false);
+          } else {
+            setThumbnailUrl(url);
+            setUploadingThumbnail(false);
           }
-        };
+        }
+      }
+    );
 
-        reader.onerror = () => reject(new Error('Failed to read file'));
-        reader.readAsDataURL(file);
-      });
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingVideo(true);
-    try {
-      const url = await uploadToCloudinary(file, 'video');
-      setVideoUrl(url);
-    } catch (error) {
-      alert(`Video upload failed: ${error}`);
-    } finally {
-      setUploadingVideo(false);
-      setUploadProgress(0);
-    }
-  };
-
-  const handleThumbnailUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingThumbnail(true);
-    try {
-      const url = await uploadToCloudinary(file, 'image');
-      setThumbnailUrl(url);
-    } catch (error) {
-      alert(`Thumbnail upload failed: ${error}`);
-    } finally {
-      setUploadingThumbnail(false);
-      setUploadProgress(0);
-    }
+    widget.open();
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!title.trim()) {
+      alert('Please enter a movie title');
+      return;
+    }
+    if (!thumbnailUrl.trim()) {
+      alert('Please upload a thumbnail');
+      return;
+    }
+    if (!videoUrl.trim()) {
+      alert('Please upload a video file');
+      return;
+    }
+
     onSave({
       title,
       description,
@@ -218,55 +214,53 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
 
           <div>
             <label className="label"><span className="label-text font-medium">Thumbnail *</span></label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  className="input input-bordered w-full"
-                  value={thumbnailUrl}
-                  onChange={(e) => setThumbnailUrl(e.target.value)}
-                  placeholder="Paste URL or upload below"
-                />
-              </div>
-              <label className="btn btn-primary btn-outline gap-2">
+            <div className="flex gap-2 items-center">
+              {thumbnailUrl ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <img src={thumbnailUrl} alt="Thumbnail" className="w-16 h-10 object-cover rounded" />
+                  <span className="text-sm text-success flex items-center gap-1">
+                    <Check size={14} /> Uploaded
+                  </span>
+                </div>
+              ) : (
+                <div className="flex-1 text-sm text-gray-400">No thumbnail uploaded</div>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary btn-outline gap-2"
+                onClick={() => openCloudinaryWidget('image')}
+                disabled={uploadingThumbnail}
+              >
                 <Upload size={16} />
                 {uploadingThumbnail ? 'Uploading...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailUpload}
-                  disabled={uploadingThumbnail}
-                  className="hidden"
-                />
-              </label>
+              </button>
             </div>
-            {uploadingThumbnail && <div className="text-xs text-info mt-1">Uploading: {uploadProgress}%</div>}
           </div>
 
           <div>
             <label className="label"><span className="label-text font-medium">Video File *</span></label>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <input
-                  className="input input-bordered w-full"
-                  value={videoUrl}
-                  onChange={(e) => setVideoUrl(e.target.value)}
-                  placeholder="Paste URL or upload below"
-                />
-              </div>
-              <label className="btn btn-primary btn-outline gap-2">
+            <div className="flex gap-2 items-center">
+              {videoUrl ? (
+                <div className="flex-1 flex items-center gap-2">
+                  <Cloud size={16} className="text-success" />
+                  <span className="text-sm text-success flex items-center gap-1">
+                    <Check size={14} /> Uploaded
+                  </span>
+                </div>
+              ) : (
+                <div className="flex-1 text-sm text-gray-400">No video uploaded</div>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary btn-outline gap-2"
+                onClick={() => openCloudinaryWidget('video')}
+                disabled={uploadingVideo}
+              >
                 <Upload size={16} />
                 {uploadingVideo ? 'Uploading...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                  disabled={uploadingVideo}
-                  className="hidden"
-                />
-              </label>
+              </button>
             </div>
-            {uploadingVideo && <div className="text-xs text-info mt-1">Uploading: {uploadProgress}%</div>}
-            {videoUrl && <div className="text-xs text-success mt-1">✅ Video URL set <Cloud size={12} className="inline" /></div>}
+            <div className="text-xs text-gray-400 mt-2">Supports up to 5GB files • Direct upload to cloud</div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -287,7 +281,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
           </div>
         </form>
       </div>
-      <div className="modal-backdrop" onClick={onClose}></div>
+      <div className="modal-backdrop" onClick={onClose}"></div>
     </div>
   );
 };
