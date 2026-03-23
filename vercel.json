@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "env": {
+    "VITE_CLOUDINARY_CLOUD_NAME": "@dbodkxhew",
+    "VITE_CLOUDINARY_UPLOAD_PRESET_VIDEO": "cinestream_video",
+    "VITE_CLOUDINARY_UPLOAD_PRESET_THUMBNAIL": "cinestream_images"
+  }
+}
