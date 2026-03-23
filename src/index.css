@@ -531,6 +531,11 @@ a { color: var(--primary); text-decoration: none; }
 }
 .auth-switch button:hover { text-decoration: underline; }
 
+/* Hide demo account hint */
+.auth-hint {
+  display: none !important;
+}
+
 /* ===== VIDEO PLAYER ===== */
 .video-overlay {
   position: fixed;
