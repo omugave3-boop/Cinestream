@@ -61,9 +61,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ onAuth }) => {
             <LogIn size={18} /> Sign In
           </button>
         </form>
-        <div className="auth-hint">
-          <p>Demo Account: admin@cinestream.com / admin123</p>
-        </div>
       </div>
     </div>
   );
