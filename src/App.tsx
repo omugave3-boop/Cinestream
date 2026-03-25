@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import UserApp from './components/UserApp';
 import AdminApp from './components/AdminApp';
 
+// v1.0.1 - ADMIN LOGIN FIX DEPLOYED
 function getHash(): string {
   return window.location.hash.replace('#', '') || 'user';
 }
