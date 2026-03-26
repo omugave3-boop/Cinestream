@@ -133,30 +133,30 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   };
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-2xl bg-base-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">{movie ? 'Edit Movie' : 'Add New Movie'}</h3>
-          <button className="btn btn-ghost btn-sm btn-circle" onClick={onClose}>
-            <X size={18} />
+    <div className="rating-modal-overlay" style={{ position: 'fixed', inset: 0, background: 'rgba(0, 0, 0, 0.8)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div className="rating-modal" style={{ maxWidth: '700px', width: '100%', position: 'relative', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{movie ? 'Edit Movie' : 'Add New Movie'}</h3>
+          <button className="rating-modal-close" onClick={onClose} style={{ position: 'relative', top: 0, right: 0 }}>
+            <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="label"><span className="label-text font-medium">Title *</span></label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Title *</label>
               <input
-                className="input input-bordered w-full"
+                style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 placeholder="Movie title"
               />
             </div>
-            <div>
-              <label className="label"><span className="label-text font-medium">Genre *</span></label>
+            <div className="form-group">
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Genre *</label>
               <select
-                className="select select-bordered w-full"
+                style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
               >
@@ -167,33 +167,33 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
             </div>
           </div>
 
-          <div>
-            <label className="label"><span className="label-text font-medium">Description</span></label>
+          <div className="form-group">
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Description</label>
             <textarea
-              className="textarea textarea-bordered w-full h-24"
+              style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box', minHeight: '100px', resize: 'vertical' }}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Movie description..."
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="label"><span className="label-text font-medium">Year</span></label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
+            <div className="form-group">
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Year</label>
               <input
                 type="number"
-                className="input input-bordered w-full"
+                style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
                 min={1900}
                 max={2030}
               />
             </div>
-            <div>
-              <label className="label"><span className="label-text font-medium">Rating</span></label>
+            <div className="form-group">
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Rating</label>
               <input
                 type="number"
-                className="input input-bordered w-full"
+                style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
                 min={0}
@@ -201,10 +201,10 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
                 step={0.1}
               />
             </div>
-            <div>
-              <label className="label"><span className="label-text font-medium">Duration</span></label>
+            <div className="form-group">
+              <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Duration</label>
               <input
-                className="input input-bordered w-full"
+                style={{ padding: '10px 14px', background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: 'var(--text-primary)', fontSize: '0.9rem', fontFamily: 'inherit', width: '100%', boxSizing: 'border-box' }}
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="2h 15m"
@@ -212,76 +212,77 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
             </div>
           </div>
 
-          <div>
-            <label className="label"><span className="label-text font-medium">Thumbnail *</span></label>
-            <div className="flex gap-2 items-center">
+          <div className="form-group">
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Thumbnail *</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {thumbnailUrl ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <img src={thumbnailUrl} alt="Thumbnail" className="w-16 h-10 object-cover rounded" />
-                  <span className="text-sm text-success flex items-center gap-1">
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img src={thumbnailUrl} alt="Thumbnail" style={{ width: '80px', height: '50px', objectFit: 'cover', borderRadius: '6px' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Check size={14} /> Uploaded
                   </span>
                 </div>
               ) : (
-                <div className="flex-1 text-sm text-gray-400">No thumbnail uploaded</div>
+                <div style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>No thumbnail uploaded</div>
               )}
               <button
                 type="button"
-                className="btn btn-primary btn-outline gap-2"
+                className="btn btn-primary"
+                style={{ whiteSpace: 'nowrap' }}
                 onClick={() => openCloudinaryWidget('image')}
                 disabled={uploadingThumbnail}
               >
-                <Upload size={16} />
+                <Upload size={14} />
                 {uploadingThumbnail ? 'Uploading...' : 'Upload'}
               </button>
             </div>
           </div>
 
-          <div>
-            <label className="label"><span className="label-text font-medium">Video File *</span></label>
-            <div className="flex gap-2 items-center">
+          <div className="form-group">
+            <label style={{ fontWeight: 600, marginBottom: '6px', display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Video File *</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {videoUrl ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <Cloud size={16} className="text-success" />
-                  <span className="text-sm text-success flex items-center gap-1">
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cloud size={14} style={{ color: 'var(--success)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Check size={14} /> Uploaded
                   </span>
                 </div>
               ) : (
-                <div className="flex-1 text-sm text-gray-400">No video uploaded</div>
+                <div style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>No video uploaded</div>
               )}
               <button
                 type="button"
-                className="btn btn-primary btn-outline gap-2"
+                className="btn btn-primary"
+                style={{ whiteSpace: 'nowrap' }}
                 onClick={() => openCloudinaryWidget('video')}
                 disabled={uploadingVideo}
               >
-                <Upload size={16} />
+                <Upload size={14} />
                 {uploadingVideo ? 'Uploading...' : 'Upload'}
               </button>
             </div>
-            <div className="text-xs text-gray-400 mt-2">Supports up to 5GB files • Direct upload to cloud</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>Supports up to 5GB files • Direct upload to cloud</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="checkbox"
-              className="toggle toggle-primary"
+              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary)' }}
               checked={featured}
               onChange={(e) => setFeatured(e.target.checked)}
             />
-            <span className="label-text">Featured movie</span>
+            <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Featured movie</span>
           </div>
 
-          <div className="modal-action">
+          <div style={{ display: 'flex', gap: '8px', marginTop: '16px', justifyContent: 'flex-end' }}>
             <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
             <button type="submit" className="btn btn-primary">
-              <Save size={16} /> {movie ? 'Update Movie' : 'Add Movie'}
+              <Save size={14} /> {movie ? 'Update Movie' : 'Add Movie'}
             </button>
           </div>
         </form>
       </div>
-      <div className="modal-backdrop" onClick={onClose}"></div>
     </div>
   );
 };
