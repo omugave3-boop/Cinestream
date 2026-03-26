@@ -10,7 +10,7 @@ declare global {
 }
 
 interface MovieModalProps {
-  movie: Movie | null; // null = add new
+  movie: Movie | null;
   onSave: (movie: Omit<Movie, 'id' | 'dateAdded'>) => void;
   onClose: () => void;
 }
@@ -28,7 +28,6 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
 
-  // Initialize Cloudinary Upload Widget
   const initializeCloudinary = () => {
     const script = document.createElement('script');
     script.src = 'https://upload-widget.cloudinary.com/latest/index.js';
@@ -64,7 +63,7 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
       {
         cloudName: 'dbodkxhew',
         uploadPreset: type === 'video' ? 'cinestream_video' : 'cinestream_images',
-        maxFileSize: 5 * 1024 * 1024 * 1024, // 5GB
+        maxFileSize: 5 * 1024 * 1024 * 1024,
         multiple: false,
         folder: type === 'video' ? 'cinestream/videos' : 'cinestream/thumbnails',
         resourceType: type === 'video' ? 'video' : 'image',
@@ -133,32 +132,89 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
   };
 
   return (
-    <div className="modal modal-open">
-      <div className="modal-box max-w-2xl bg-base-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold">{movie ? 'Edit Movie' : 'Add New Movie'}</h3>
-          <button className="btn btn-ghost btn-sm btn-circle" onClick={onClose}>
-            <X size={18} />
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      background: 'rgba(0, 0, 0, 0.8)',
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '24px',
+    }}>
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius)',
+        padding: '24px',
+        maxWidth: '700px',
+        width: '100%',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        position: 'relative',
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: '20px',
+        }}>
+          <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0 }}>
+            {movie ? 'Edit Movie' : 'Add New Movie'}
+          </h3>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '1.5rem',
+            }}
+          >
+            <X size={20} />
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div>
-              <label className="label"><span className="label-text font-medium">Title *</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Title *</label>
               <input
-                className="input input-bordered w-full"
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 placeholder="Movie title"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
             <div>
-              <label className="label"><span className="label-text font-medium">Genre *</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Genre *</label>
               <select
-                className="select select-bordered w-full"
                 value={genre}
                 onChange={(e) => setGenre(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               >
                 {GENRES.map((g) => (
                   <option key={g} value={g}>{g}</option>
@@ -168,120 +224,221 @@ export const MovieModal: React.FC<MovieModalProps> = ({ movie, onSave, onClose }
           </div>
 
           <div>
-            <label className="label"><span className="label-text font-medium">Description</span></label>
+            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Description</label>
             <textarea
-              className="textarea textarea-bordered w-full h-24"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Movie description..."
+              style={{
+                width: '100%',
+                padding: '10px 14px',
+                background: 'var(--bg-input)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'var(--text-primary)',
+                fontSize: '0.9rem',
+                outline: 'none',
+                fontFamily: 'inherit',
+                height: '100px',
+                resize: 'vertical',
+              }}
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
             <div>
-              <label className="label"><span className="label-text font-medium">Year</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Year</label>
               <input
                 type="number"
-                className="input input-bordered w-full"
                 value={year}
                 onChange={(e) => setYear(Number(e.target.value))}
                 min={1900}
                 max={2030}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
             <div>
-              <label className="label"><span className="label-text font-medium">Rating</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Rating</label>
               <input
                 type="number"
-                className="input input-bordered w-full"
                 value={rating}
                 onChange={(e) => setRating(Number(e.target.value))}
                 min={0}
                 max={10}
                 step={0.1}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
             <div>
-              <label className="label"><span className="label-text font-medium">Duration</span></label>
+              <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Duration</label>
               <input
-                className="input input-bordered w-full"
+                type="text"
                 value={duration}
                 onChange={(e) => setDuration(e.target.value)}
                 placeholder="2h 15m"
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'var(--bg-input)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-sm)',
+                  color: 'var(--text-primary)',
+                  fontSize: '0.9rem',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
               />
             </div>
           </div>
 
           <div>
-            <label className="label"><span className="label-text font-medium">Thumbnail *</span></label>
-            <div className="flex gap-2 items-center">
+            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Thumbnail *</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {thumbnailUrl ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <img src={thumbnailUrl} alt="Thumbnail" className="w-16 h-10 object-cover rounded" />
-                  <span className="text-sm text-success flex items-center gap-1">
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <img src={thumbnailUrl} alt="Thumbnail" style={{ width: '60px', height: '40px', objectFit: 'cover', borderRadius: '4px' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Check size={14} /> Uploaded
                   </span>
                 </div>
               ) : (
-                <div className="flex-1 text-sm text-gray-400">No thumbnail uploaded</div>
+                <div style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>No thumbnail uploaded</div>
               )}
               <button
                 type="button"
-                className="btn btn-primary btn-outline gap-2"
                 onClick={() => openCloudinaryWidget('image')}
                 disabled={uploadingThumbnail}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  opacity: uploadingThumbnail ? 0.6 : 1,
+                }}
               >
-                <Upload size={16} />
+                <Upload size={14} />
                 {uploadingThumbnail ? 'Uploading...' : 'Upload'}
               </button>
             </div>
           </div>
 
           <div>
-            <label className="label"><span className="label-text font-medium">Video File *</span></label>
-            <div className="flex gap-2 items-center">
+            <label style={{ fontSize: '0.85rem', fontWeight: '600', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Video File *</label>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               {videoUrl ? (
-                <div className="flex-1 flex items-center gap-2">
-                  <Cloud size={16} className="text-success" />
-                  <span className="text-sm text-success flex items-center gap-1">
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Cloud size={16} style={{ color: 'var(--success)' }} />
+                  <span style={{ fontSize: '0.85rem', color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Check size={14} /> Uploaded
                   </span>
                 </div>
               ) : (
-                <div className="flex-1 text-sm text-gray-400">No video uploaded</div>
+                <div style={{ flex: 1, fontSize: '0.85rem', color: 'var(--text-muted)' }}>No video uploaded</div>
               )}
               <button
                 type="button"
-                className="btn btn-primary btn-outline gap-2"
                 onClick={() => openCloudinaryWidget('video')}
                 disabled={uploadingVideo}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  fontSize: '0.85rem',
+                  fontWeight: '600',
+                  opacity: uploadingVideo ? 0.6 : 1,
+                }}
               >
-                <Upload size={16} />
+                <Upload size={14} />
                 {uploadingVideo ? 'Uploading...' : 'Upload'}
               </button>
             </div>
-            <div className="text-xs text-gray-400 mt-2">Supports up to 5GB files • Direct upload to cloud</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>Supports up to 5GB files • Direct upload to cloud</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="checkbox"
-              className="toggle toggle-primary"
               checked={featured}
               onChange={(e) => setFeatured(e.target.checked)}
+              style={{ width: '18px', height: '18px', cursor: 'pointer' }}
             />
-            <span className="label-text">Featured movie</span>
+            <label style={{ cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary)' }}>Featured movie</label>
           </div>
 
-          <div className="modal-action">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary">
+          <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                flex: 1,
+                padding: '10px 20px',
+                background: 'var(--border)',
+                color: 'var(--text-primary)',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              style={{
+                flex: 1,
+                padding: '10px 20px',
+                background: 'var(--primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '0.9rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+              }}
+            >
               <Save size={16} /> {movie ? 'Update Movie' : 'Add Movie'}
             </button>
           </div>
         </form>
       </div>
-      <div className="modal-backdrop" onClick={onClose}"></div>
     </div>
   );
 };
