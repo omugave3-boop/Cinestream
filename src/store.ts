@@ -14,6 +14,7 @@ const DEFAULT_ADMIN: User = {
   email: 'admin@cinestream.com',
   password: 'admin123',
   name: 'Admin User',
+  username: 'admin',
   role: 'admin',
   createdAt: new Date().toISOString(),
 };
